@@ -1,0 +1,6 @@
+name: Haed
+version: 1.0
+main: com.joey.haed.Main
+
+commands:
+  fe:
