@@ -5,15 +5,16 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.FallingBlock;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 
 public class Main extends JavaPlugin {
-    Map<String, FallingBlock> blocks = new HashMap<>();
+    Map<String, ArmorStand> stands = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -31,32 +32,54 @@ public class Main extends JavaPlugin {
         if (command.getName().equalsIgnoreCase("fe")) {
             if (args[0].equalsIgnoreCase("spawn")) {
                 Material material = player.getInventory().getItemInMainHand().getType();
-                Location spawnLocation = player.getEyeLocation();
+                Location location = player.getEyeLocation();
+                ItemStack stack = new ItemStack(material);
 
-                FallingBlock block = player.getWorld().spawnFallingBlock(spawnLocation, material, (byte)1);
-                block.setGlowing(true);
-                block.setGlowing(true);
+                ArmorStand stand = (ArmorStand) player.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
+                stand.setGravity(false);
+                //stand.setGlowing(true);
+                stand.setVisible(false);
+                stand.setHelmet(stack);
 
-                blocks.put(args[1], block);
+                stands.put(args[1], stand);
+
+                player.sendMessage(ChatColor.GREEN + "stand [" + args[1] + "] is spawned");
 
                 return true;
             }
             else if (args[0].equalsIgnoreCase("remove")) {
                 if (args[1].equalsIgnoreCase("all")) {
-                    blocks.clear();
+                    for (ArmorStand i : stands.values()) {
+                        i.remove();
+                    }
+                    stands.clear();
 
                     return true;
                 }
 
-                if (blocks.containsKey(args[1])) {
-                    blocks.remove(args[1]);
+                if (stands.containsKey(args[1])) {
+                    stands.get(args[1]).remove();
+                    stands.remove(args[1]);
                 }
                 else {
-                    player.sendMessage(ChatColor.RED + "Cannot find block [" + args[1] + "]");
+                    player.sendMessage(ChatColor.RED + "Cannot find stand [" + args[1] + "]");
                 }
             }
             else if (args[0].equalsIgnoreCase("rotate")) {
-                //todo
+                if (args[1].equalsIgnoreCase("all")) {
+                    for (ArmorStand i : stands.values()) {
+                        i.setRotation(45,45);
+                    }
+
+                    return true;
+                }
+
+                if (stands.containsKey(args[1])) {
+                    stands.get(args[1]).setRotation(Integer.parseInt(args[2]), 45);
+                }
+                else {
+                    player.sendMessage(ChatColor.RED + "Cannot find stand [" + args[1] + "]");
+                }
             }
         }
 
@@ -80,7 +103,7 @@ public class Main extends JavaPlugin {
                     List<String> targets = new ArrayList<>();
 
                     targets.add("all");
-                    targets.addAll(blocks.keySet());
+                    targets.addAll(stands.keySet());
 
                     return targets;
                 }
