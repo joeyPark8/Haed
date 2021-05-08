@@ -37,7 +37,6 @@ public class Main extends JavaPlugin {
 
                 ArmorStand stand = (ArmorStand) player.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
                 stand.setGravity(false);
-                //stand.setGlowing(true);
                 stand.setVisible(false);
                 stand.setHelmet(stack);
                 stand.setRotation(0, 45);
@@ -53,6 +52,22 @@ public class Main extends JavaPlugin {
             else if (args[0].equalsIgnoreCase("remove")) {
                 if (args[1].equalsIgnoreCase("all")) {
                     for (ArmorStand i : stands.values()) {
+                        if (args.length == 4) {
+                            if (args[2].equalsIgnoreCase("with")) {
+                                if (args[3].equalsIgnoreCase("rocket")) {
+                                    World world = i.getWorld();
+                                    Location location = i.getLocation().add(0, i.getEyeHeight(), 0);
+
+                                    world.spawnParticle(Particle.FIREWORKS_SPARK, location, 50);
+                                }
+                                else if (args[3].equalsIgnoreCase("explosion")) {
+                                    World world = i.getWorld();
+                                    Location location = i.getLocation().add(0, i.getEyeHeight(), 0);
+
+                                    world.spawnParticle(Particle.EXPLOSION_NORMAL, location, 50);
+                                }
+                            }
+                        }
                         i.remove();
                     }
                     stands.clear();
@@ -69,6 +84,12 @@ public class Main extends JavaPlugin {
 
                                 world.spawnParticle(Particle.FIREWORKS_SPARK, location, 50);
                             }
+                            else if (args[3].equalsIgnoreCase("explosion")) {
+                                World world = stands.get(args[1]).getWorld();
+                                Location location = stands.get(args[1]).getLocation().add(0, stands.get(args[1]).getEyeHeight(), 0);
+
+                                world.spawnParticle(Particle.EXPLOSION_NORMAL, location, 50);
+                            }
                         }
                     }
                     stands.get(args[1]).remove();
@@ -83,12 +104,19 @@ public class Main extends JavaPlugin {
             else if (args[0].equalsIgnoreCase("rotate")) {
                 if (args[1].equalsIgnoreCase("forever")) {
                     if  (args[2].equalsIgnoreCase("all")) {
+                        final int[] degree = {0};
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                //todo
+                                for (ArmorStand i : stands.values()) {
+                                    i.setRotation(degree[0], 45);
+                                    degree[0] += Integer.parseInt(args[3]);
+                                    if (degree[0] >= 360) {
+                                        degree[0] = max360(degree[0], Integer.parseInt(args[3]));
+                                    }
+                                }
                             }
-                        }.runTaskTimer(this, 0, 2);
+                        }.runTaskTimer(this, 0, 1);
                     }
 
                     if (stands.containsKey(args[2])) {
@@ -96,10 +124,12 @@ public class Main extends JavaPlugin {
                         new BukkitRunnable() {
                             @Override
                             public void run() {
-                                stands.get(args[2]).setRotation(term[0], 45);
-                                term[0] += Integer.parseInt(args[3]);
-                                if (term[0] >= 360) {
-                                    term[0] = 0;
+                                if (stands.containsKey(args[2])) {
+                                    stands.get(args[2]).setRotation(term[0], 45);
+                                    term[0] += Integer.parseInt(args[3]);
+                                    if (term[0] >= 360) {
+                                        term[0] = max360(term[0], Integer.parseInt(args[3]));
+                                    }
                                 }
                             }
                         }.runTaskTimer(this, 0, 1);
@@ -123,6 +153,9 @@ public class Main extends JavaPlugin {
                     else {
                         player.sendMessage(ChatColor.RED + "Cannot find stand [" + args[1] + "]");
                     }
+                }
+                else if (args[1].equalsIgnoreCase("stop")) {
+                    //todo
                 }
             }
 
@@ -195,7 +228,7 @@ public class Main extends JavaPlugin {
                 ArmorStand sword = (ArmorStand) player.getWorld().spawnEntity(player.getLocation(), EntityType.ARMOR_STAND);
                 ItemStack stack = new ItemStack(Material.DIAMOND_SWORD);
 
-                sword.setVisible(true);
+                sword.setVisible(false);
                 sword.setGravity(false);
                 sword.setItemInHand(stack);
                 sword.getLocation().setDirection(player.getLocation().getDirection());
@@ -211,17 +244,56 @@ public class Main extends JavaPlugin {
                     @Override
                     public void run() {
                         if (stands.containsKey("sword")) {
-                            sword.getLocation().setDirection(player.getLocation().getDirection());
+                            stands.get("sword").teleport(player.getLocation());
                         }
                         else {
                             cancel();
                         }
                     }
-                }.runTaskTimer(this, 0, 2);
+                }.runTaskTimer(this, 0, 1);
+            }
+
+            //큰 블럭 만들기
+            else if (args[0].equalsIgnoreCase("hugeBlock")) {
+                Material material = player.getInventory().getItemInMainHand().getType();
+                Location location = player.getEyeLocation();
+                ItemStack stack = new ItemStack(material);
+
+                int num = 1;
+                for (double rx = 0; rx < 3; rx+=1) {
+                    for (double ry = 0; ry < 3; ry+=1) {
+                        for (double rz = 0; rz < 3; rz+=1) {
+                            ArmorStand stand = (ArmorStand) player.getWorld().spawnEntity(player.getLocation().add(rx, ry, rz), EntityType.ARMOR_STAND);
+
+                            stand.setHelmet(stack);
+                            stand.setGravity(false);
+                            stand.setVisible(false);
+
+                            stands.put("block" + num, stand);
+
+                            num += 1;
+                        }
+                        num += 1;
+                    }
+                    num += 1;
+                }
+
             }
         }
 
         return false;
+    }
+
+    int max360(int degree, int degree2) {
+        int num = 0;
+        for (int i = 0; i < degree2; i+=1) {
+            num += 1;
+            if (degree + num == 360) {
+                return degree2 - num;
+            }
+        }
+
+        return 0;
     }
 
     @Override
@@ -235,6 +307,7 @@ public class Main extends JavaPlugin {
                 modes.add("rotate");
                 modes.add("setting");
                 modes.add("goblin");
+                modes.add("hugeBlock");
 
                 return modes;
             }
@@ -302,6 +375,7 @@ public class Main extends JavaPlugin {
                     List<String> types = new ArrayList<>();
 
                     types.add("rocket");
+                    types.add("explosion");
 
                     return types;
                 }
