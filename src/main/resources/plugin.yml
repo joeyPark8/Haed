@@ -1,5 +1,5 @@
 name: Haed
-version: 3.7
+version: 4.5
 main: com.joey.haed.Main
 
 commands:
